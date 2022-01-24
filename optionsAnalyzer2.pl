@@ -34,9 +34,11 @@ my %flowHash;
 my $callSize = 0;
 my $putSize = 0;
 
-my $daySave;
-my $monthSave;
-my $yearSave;
+my $daySave = "notset";
+my $monthSave = "notset";
+my $yearSave = "notset";
+my $putVolume = 0;
+my $callVolume = 0;
 
 while(<FHDATA>){
 	my @data = split("	",$_);
@@ -55,9 +57,16 @@ while(<FHDATA>){
 	my $month = @timestampHelper[4];
 	my $year = @timestampHelper[5];
 	
-	$yearSave = $year;
-	$monthSave = $month;
-	$daySave = $day;
+	if($yearSave =~ /notset/){
+		$yearSave = $year;
+	}
+	if($monthSave =~ /notset/){
+		$monthSave = $month;
+	}
+	if($daySave =~ /notset/){
+		$daySave = $day;
+	}
+	
 	
 	$volume =~ s/,//g;
 	@data[1] = "[$ticker](https://finance.yahoo.com/quote/$ticker/)";
@@ -65,6 +74,7 @@ while(<FHDATA>){
 	if(@data[0] =~ /[0-9+]C[0-9]+/){
 		my $hashthing = $ticker . "calls";
 		$callSize = $callSize + $volPrice;
+		$callVolume = $callVolume + $volume;
 		if(0+$flowHash{$hashthing} != 0){
 			#print "@data[0] + $volPrice + call\n";
 			$flowHash{$hashthing} = $flowHash{$hashthing} + $volPrice;
@@ -79,6 +89,7 @@ while(<FHDATA>){
 		
 		my $hashthing2 = $ticker . "puts";
 		$putSize = $putSize + $volPrice;
+		$putVolume = $putVolume + $volume;
 		if(0+$flowHash{$hashthing2} != 0){
 			$flowHash{$hashthing2} = $flowHash{$hashthing2} + $volPrice;
 		}
@@ -186,27 +197,53 @@ for(sort keys %flowHash){
 my $callSizePrint = commify($callSize);
 my $putSizePrint = commify($putSize);
 
-my $filenameSaver = $yearSave . $monthSave . $daySave . "totals";
+my $filenameSaver = "todaystotals";
 
-open(DELTASAVER, '<', $filenameSaver)  or die $! . $filenameSaver;
 
 my $callSizeFromFile = "notset";
 my $putSizeFromFile = "notset";
 my $totalSizeFromFile = "notset";
+my $callVolumeFromFile = "notset";
+my $putVolumeFromFile = "notset";
 
-while(<DELTASAVER>){
-	if($callSizeFromFile =~ /notset/){
-		$callSizeFromFile = $_;		
-	}
-	elsif($putSizeFromFile =~ /notset/){
-		$putSizeFromFile = $_;
-	}
-	elsif($totalSizeFromFile =~ /notset/){
-		$totalSizeFromFile = $_;
-	}
-	else{
+if(open(DELTASAVER, '<', $filenameSaver)){
+	while(<DELTASAVER>){
+		if($callSizeFromFile =~ /notset/){
+			$callSizeFromFile = $_;		
+		}
+		elsif($putSizeFromFile =~ /notset/){
+			$putSizeFromFile = $_;
+		}
+		elsif($totalSizeFromFile =~ /notset/){
+			$totalSizeFromFile = $_;
+		}
+		elsif($callVolumeFromFile =~ /notset/){
+			$callVolumeFromFile = $_;
+		}
+		elsif($putVolumeFromFile =~ /notset/){
+			$putVolumeFromFile = $_;
+		}
+		else{
+		}
 	}
 }
+if($callSizeFromFile =~ /notset/){
+	$callSizeFromFile = 0;
+}
+if($putSizeFromFile =~ /notset/){
+	$putSizeFromFile = 0;
+}
+if($totalSizeFromFile =~ /notset/){
+	$totalSizeFromFile = 0;
+}
+if($callVolumeFromFile =~ /notset/){
+	$callVolumeFromFile = 0;
+}
+if($putVolumeFromFile =~ /notset/){
+	$putVolumeFromFile = 0;
+}
+
+
 
 close(DELTASAVER);
 open(DELTASAVER, '>', $filenameSaver) or die $! . $filenameSaver;
@@ -216,27 +253,36 @@ open(DELTASAVER, '>', $filenameSaver) or die $! . $filenameSaver;
 $callSizeFromFile = commify($callSize - $callSizeFromFile);
 $putSizeFromFile = commify($putSize - $putSizeFromFile);
 
-print "\nUntrimmed Total Calls: $callSizePrint (Δ$callSizeFromFile)\n";
-print "\nUntrimmed Total Puts: $putSizePrint (Δ$putSizeFromFile)\n";
+my $callVolumePrint = commify($callVolume - $callVolumeFromFile);
+my $putVolumePrint = commify($putVolume - $putVolumeFromFile);
+
+my $callVolumePrintOrig = commify($callVolume);
+my $putVolumePrintOrig = commify($putVolume);
+
+print "\nUntrimmed Total Calls: \$$callSizePrint (Δ$callSizeFromFile) volume: $callVolumePrintOrig (Δ$callVolumePrint)\n";
+print "\nUntrimmed Total Puts: \$$putSizePrint (Δ$putSizeFromFile) volume: $putVolumePrintOrig (Δ$putVolumePrint)\n";
 my $absv = 0;
 if($putSize > $callSize){
 	$abs = $putSize - $callSize;
 	$absv = -1 * $abs;
 	$totalSizeFromFile = commify((-1 * $abs) - $totalSizeFromFile);
 	$abs = commify($abs);
-	print "\nBearish Flow: $abs (Δ$totalSizeFromFile)\n";
+	print "\nBearish Flow: \$$abs (Δ$totalSizeFromFile)\n";
 }
 else{
 	my $abs = $callSize - $putSize;
 	$totalSizeFromFile = commify($abs - $totalSizeFromFile);
 	$absv = "$abs";
 	$abs = commify($abs);
-	print "\nBullish Flow $abs (Δ$totalSizeFromFile)\n";
+	print "\nBullish Flow \$$abs (Δ$totalSizeFromFile)\n";
 }
 
 print(DELTASAVER "$callSize\n");
 print(DELTASAVER "$putSize\n");
 print(DELTASAVER "$absv\n");
+print(DELTASAVER "$callVolume\n");
+print(DELTASAVER "$putVolume\n");
+
 
 
 close(DELTASAVER);
