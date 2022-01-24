@@ -1,0 +1,27 @@
+ Option Volume',
+					   'legend':'left',
+                       'width':800,
+					   'bar' : { groupWidth: '75%' },
+                       'height':600};
+
+        // Instantiate and draw our chart, passing in some options.
+        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+ <link rel="stylesheet" href="styles.css">
+ <style>
+body {
+  font-family: Garamond, serif;
+}
+</style>
+  <title>/u/chmod-007-bond's Options Charting</title>
+  <center>
+  <h1>/u/chmod-007-bond's Options Charting</h1>
+  </center>
+ </head>
+ <body>
+	<p>Chart</p>
+    <div id="chart_div"></div>
+</body>
+</html>

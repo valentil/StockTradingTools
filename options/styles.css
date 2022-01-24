@@ -1,0 +1,36 @@
+h1 {
+	color: Black;
+	font-size: 100%;
+	font: 'Brush Script MT', cursive;
+}
+
+p {
+	color: Black;
+	font-size: 100%;
+	font: 'Brush Script MT', cursive;
+}
+
+select {
+	color: Black;
+	font-size: 100%;
+	font: 'Brush Script MT', cursive;
+}
+
+submit{
+	color: Black;
+	font-size: 25%;
+	font: 'Brush Script MT', cursive;	
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+body{
+	background-color: gray;
+}
+
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}

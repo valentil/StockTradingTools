@@ -1,0 +1,10 @@
+   ]);
+	 var formatter_hours = new google.visualization.DateFormat({pattern: "M/d/yy - H:m"});
+  var formatter_medium = new google.visualization.DateFormat({formatType: 'medium'});
+  var formatter_short = new google.visualization.DateFormat({formatType: 'short'});
+	formatter_short.format(data, 2);
+	formatter_hours.format(data, 0);
+	//data.sort([{column: 0, desc: true}]);
+	data.sort([{column: 0}]);
+        // Set chart options
+        var options = {'title':'
