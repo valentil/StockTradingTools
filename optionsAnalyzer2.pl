@@ -221,15 +221,15 @@ print "\nUntrimmed Total Puts: $putSizePrint (Δ$putSizeFromFile)\n";
 my $absv = 0;
 if($putSize > $callSize){
 	$abs = $putSize - $callSize;
-	$absv = "$abs";
-	$totalSizeFromFile = commify($abs - $totalSizeFromFile);
+	$absv = -1 * $abs;
+	$totalSizeFromFile = commify((-1 * $abs) - $totalSizeFromFile);
 	$abs = commify($abs);
 	print "\nBearish Flow: $abs (Δ$totalSizeFromFile)\n";
 }
 else{
 	my $abs = $callSize - $putSize;
 	$totalSizeFromFile = commify($abs - $totalSizeFromFile);
-	$absv = -1 * $abs;
+	$absv = "$abs";
 	$abs = commify($abs);
 	print "\nBullish Flow $abs (Δ$totalSizeFromFile)\n";
 }
