@@ -39,6 +39,7 @@ my $monthSave = "notset";
 my $yearSave = "notset";
 my $putVolume = 0;
 my $callVolume = 0;
+my $epoc = time();
 
 while(<FHDATA>){
 	my @data = split("	",$_);
@@ -205,10 +206,14 @@ my $putSizeFromFile = "notset";
 my $totalSizeFromFile = "notset";
 my $callVolumeFromFile = "notset";
 my $putVolumeFromFile = "notset";
+my $epochFromFile = "notset";
 
 if(open(DELTASAVER, '<', $filenameSaver)){
 	while(<DELTASAVER>){
-		if($callSizeFromFile =~ /notset/){
+		if($epochFromFile =~ /notset/){
+			$epochFromFile = $_;
+		}
+		elsif($callSizeFromFile =~ /notset/){
 			$callSizeFromFile = $_;		
 		}
 		elsif($putSizeFromFile =~ /notset/){
@@ -253,30 +258,49 @@ open(DELTASAVER, '>', $filenameSaver) or die $! . $filenameSaver;
 $callSizeFromFile = commify($callSize - $callSizeFromFile);
 $putSizeFromFile = commify($putSize - $putSizeFromFile);
 
+my $callSizeFromFileNumber = $callVolume - $callVolumeFromFile;
+my $putSizeFromFileNumber = $putVolume - $putVolumeFromFile;
+
+my $bothSizeFromFileNumber;
 my $callVolumePrint = commify($callVolume - $callVolumeFromFile);
 my $putVolumePrint = commify($putVolume - $putVolumeFromFile);
 
 my $callVolumePrintOrig = commify($callVolume);
 my $putVolumePrintOrig = commify($putVolume);
 
-print "\nUntrimmed Total Calls: \$$callSizePrint (Δ$callSizeFromFile) volume: $callVolumePrintOrig (Δ$callVolumePrint)\n";
-print "\nUntrimmed Total Puts: \$$putSizePrint (Δ$putSizeFromFile) volume: $putVolumePrintOrig (Δ$putVolumePrint)\n";
+my $timeDelta = $epoc - $epochFromFile;
+
+my $timeDelta = $timeDelta / 60.0; #seconds to minutes
+my $contractsperminute = 0;
+$contractsperminute = $callSizeFromFileNumber / ($timeDelta *1.0);
+commify($contractsperminute);
+print "\nUntrimmed Total Calls: \$$callSizePrint (Δ$callSizeFromFile) volume: $callVolumePrintOrig (Δ$callVolumePrint -> $contractsperminute per minute)\n";
+$contractsperminute = $putSizeFromFileNumber / ($timeDelta *1.0);
+commify($contractsperminute);
+print "\nUntrimmed Total Puts: \$$putSizePrint (Δ$putSizeFromFile) volume: $putVolumePrintOrig (Δ$putVolumePrint -> $contractsperminute per minute)\n";
 my $absv = 0;
+
 if($putSize > $callSize){
 	$abs = $putSize - $callSize;
 	$absv = -1 * $abs;
 	$totalSizeFromFile = commify((-1 * $abs) - $totalSizeFromFile);
+	$bothSizeFromFileNumber = (-1 * $abs) - $totalSizeFromFile;
 	$abs = commify($abs);
-	print "\nBearish Flow: \$$abs (Δ$totalSizeFromFile)\n";
+	$contractsperminute = $bothSizeFromFileNumber / ($timeDelta *1.0);
+	commify($contractsperminute);
+	print "\nBearish Flow: \$$abs (Δ$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
 }
 else{
 	my $abs = $callSize - $putSize;
 	$totalSizeFromFile = commify($abs - $totalSizeFromFile);
+	$bothSizeFromFileNumber =  $abs - $totalSizeFromFile;
 	$absv = "$abs";
 	$abs = commify($abs);
-	print "\nBullish Flow \$$abs (Δ$totalSizeFromFile)\n";
+	$contractsperminute = $bothSizeFromFileNumber / ($timeDelta *1.0);
+	commify($contractsperminute);
+	print "\nBullish Flow \$$abs (Δ$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
 }
-
+print(DELTASAVER "$epoc\n");
 print(DELTASAVER "$callSize\n");
 print(DELTASAVER "$putSize\n");
 print(DELTASAVER "$absv\n");
