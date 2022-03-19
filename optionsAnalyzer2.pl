@@ -288,7 +288,7 @@ if($putSize > $callSize){
 	$abs = commify($abs);
 	$contractsperminute = $bothSizeFromFileNumber / ($timeDelta *1.0);
 	commify($contractsperminute);
-	print "\nBearish Flow: \$$abs (Δ$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
+	print "\nBearish Flow: \$$abs (Δ$totalSizeFromFile in $timeDelta minutes)\n";
 }
 else{
 	my $abs = $callSize - $putSize;
@@ -300,6 +300,12 @@ else{
 	commify($contractsperminute);
 	print "\nBullish Flow \$$abs (Δ$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
 }
+$epoc = time();
+$epoc = $epoc + 2 * 60 * 60;    # 2 hours after
+my $datestring = localtime($epoc);
+print "\nSnapshot @ $datestring\n";
+
+
 print(DELTASAVER "$epoc\n");
 print(DELTASAVER "$callSize\n");
 print(DELTASAVER "$putSize\n");
