@@ -1,0 +1,10 @@
+
+Ticker|EOD Prediction|EOD Actual|
+:--|:--:|:--:|
+AAPL|166|168.82
+MSFT|297.5|304.06
+FB|220|216.65
+NVDA|275|264.6
+AMD|120|114.7
+TSLA|930|995
+

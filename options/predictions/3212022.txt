@@ -1,0 +1,25 @@
+March 21st, 2022 review:
+:--|:--:|:--:|
+|Ticker|Prediction|Actual
+
+SPY|446| 444.3
+
+QQQ|355| 350.08
+
+AMZN|3250| 3229.83
+
+AFRM|42| 41.96
+
+AMD|116| 115.92
+
+NVDA|260| 267.34
+
+TSLA|925| 921.16
+
+SHOP |below 693| 683.45
+
+ZIM |below 87.2| 88.01
+
+SHOP+ZIM: weird spreads trying to get a handle on. ex-dividen for ZIM, n/a for SHOP, 
+
+
