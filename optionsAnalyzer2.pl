@@ -15,16 +15,16 @@ push(@columns, "Intrinsic Value");
 push(@columns, "Price * Volume");
 
 my @flowColumns;
-push(@flowColumns, "Flow in Dollars (for sorting)");
-push(@flowColumns, "Flow in Dollars (for reading)");
-push(@flowColumns, "Total Premium in Dollars ((ExtrinsicValue * 100) * volume)(for sorting)");
-push(@flowColumns, "Total Premium in Dollars (for reading)");
+push(@flowColumns, "Price Weighted Volume (for sorting)");
+push(@flowColumns, "Price Weighted Volume (for reading)");
+push(@flowColumns, "Total Premium (((ExtrinsicValue - IntrinsicValue) * 100) * volume)(for sorting)");
+push(@flowColumns, "Total Premium (for reading)");
 
 my @netFlowColumns;
-push(@netFlowColumns, "Net Flow(Calls minus Puts) in Dollars (for sorting)");
-push(@netFlowColumns, "Net Flow(Calls minus Puts) in Dollars (for reading)");
-push(@netFlowColumns, "Total Premium in Dollars ((ExtrinsicValue * 100) * volume)(for sorting)");
-push(@netFlowColumns, "Total Premium in Dollars (for reading)");
+push(@netFlowColumns, "Net Flow(Calls minus Puts) (for sorting)");
+push(@netFlowColumns, "Net Flow(Calls minus Puts) (for reading)");
+push(@netFlowColumns, "Total Premium (((ExtrinsicValue - IntrinsicValue) * 100) * volume)(for sorting)");
+push(@netFlowColumns, "Total Premium (for reading)");
 
 #print "reading @ARGV[0]\n";
 my $filename = @ARGV[0];
@@ -97,7 +97,7 @@ while(<FHDATA>){
 	if(@data[0] =~ /[0-9+]C[0-9]+/){
 		my $hashthing = $ticker . "calls";
 		
-		$premiumHash{$hashthing} = $premiumHash{$hashthing} + (($ExtrinsicValue * 100) * $volume);
+		$premiumHash{$hashthing} = $premiumHash{$hashthing} + ((($ExtrinsicValue - $IntrinsicValue) * 100) * $volume);
 		
 		$callSize = $callSize + $volPrice;
 		$callVolume = $callVolume + $volume;
@@ -114,7 +114,7 @@ while(<FHDATA>){
 	else{
 		my $hashthing2 = $ticker . "puts";
 		
-		$premiumHash{$hashthing2} = $premiumHash{$hashthing2} + (($ExtrinsicValue * 100) * $volume);
+		$premiumHash{$hashthing2} = $premiumHash{$hashthing2} + ((($ExtrinsicValue - $IntrinsicValue) * 100) * $volume);
 		
 		$putSize = $putSize + $volPrice;
 		$putVolume = $putVolume + $volume;
@@ -237,12 +237,12 @@ for(sort keys %flowHash){
 		$oldSize = $deltaHash{$_};
 		$deltaSize = int($size - $oldSize);
 		if($size > $sizeLimitLow || $oldSize > $sizeLimitLow){
-			$printHelp = commify($flowHash{$_});
+			$printHelp = commillify($flowHash{$_});
 			$printer = $_;
 			$printer =~ s/calls//g;
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			$premiumPrinter = commify($premiumHash{$_});
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumHash{$_}|$premiumPrinter\n");
+			$premiumPrinter = commillify($premiumHash{$_});
+			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumHash{$_}|$premiumPrinter\n");
 		}
 	}
 	else{
@@ -257,12 +257,12 @@ for(sort keys %flowHash){
 		$oldSize = $deltaHash{$_};
 		$deltaSize = int($size - $oldSize);
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
-			$printHelp = commify($flowHash{$_});
+			$printHelp = commillify($flowHash{$_});
 			$printer = $_;
 			$printer =~ s/puts//g;
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			$premiumPrinter = commify($premiumHash{$_});
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumHash{$_}|$premiumPrinter|\n");
+			$premiumPrinter = commillify($premiumHash{$_});
+			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumHash{$_}|$premiumPrinter|\n");
 		}
 	}
 	else{
@@ -302,17 +302,17 @@ for(sort keys %flowHash){
 		if($premiumHash{$_} > 0 ){
 			$premiumSize = $premiumHash{$_};
 			if($premiumHash{$putter} > 0){
-				$premiumSize = int($premiumSize - $premiumHash{$putter}); 
+				$premiumSize = int($premiumSize + $premiumHash{$putter}); 
 				$premiumHash{$putter} = 0; #zero it out
 			}
 		}
 		
 		
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
-			$printHelp = commify($size);
+			$printHelp = commillify($size);
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			$premiumPrinter = commify($premiumSize);
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumSize|$premiumPrinter|\n");
+			$premiumPrinter = commillify($premiumSize);
+			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumSize|$premiumPrinter|\n");
 		}
 		
 	}
@@ -322,16 +322,16 @@ for(sort keys %flowHash){
 		$size = $flowHash{$_};
 		$size = -1 * $size;
 		$deltaSize = int($size + $deltaHash{$_});
-		$premiumSize = $premiumHash{$_} * -1;
+		$premiumSize = $premiumHash{$_};
 		chomp($deltaSize);
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
 			#we haven't already done these calls then
 			$printer = $_;
 			$printer =~ s/puts//g;
-			$printHelp = commify($size);
+			$printHelp = commillify($size);
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			$premiumPrinter = commify($premiumSize);
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumSize|$premiumPrinter|\n");
+			$premiumPrinter = commillify($premiumSize);
+			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumSize|$premiumPrinter|\n");
 		}
 	}
 }
@@ -413,6 +413,26 @@ sub commify {
     my $text = reverse $_[0];
     $text =~ s/(\d\d\d)(?=\d)(?!\d*\.)/$1,/g;
     return scalar reverse $text;
+}
+
+sub commillify {
+    commify(millify($_[0]));
+}
+
+sub millify{
+	my $number = $_[0];
+	$number = $number / 1000000.0;
+	return "\$" . $number . "m";
+}
+
+sub cothousandfy{
+	commify(thousandfy($_[0]));
+}
+
+sub thousandfy{
+	my $number = $_[0];
+	$number = $number / 1000.0;
+	return "" . $number . "k";
 }
 
 sub printTableHeader(){
