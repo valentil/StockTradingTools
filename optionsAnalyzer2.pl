@@ -302,7 +302,7 @@ for(sort keys %flowHash){
 		$deltaSize = commillify($deltaSize);
 		chomp($deltaSize);
 		
-		if($premiumHash{$_} > 0 ){
+		if($premiumHash{$_} != 0 ){
 			$premiumSize = $premiumHash{$_};
 			if($premiumHash{$putter} > 0){
 				$premiumSize = int($premiumSize + $premiumHash{$putter}); 
