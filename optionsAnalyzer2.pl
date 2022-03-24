@@ -15,16 +15,16 @@ push(@columns, "Intrinsic Value");
 push(@columns, "Price * Volume");
 
 my @flowColumns;
-push(@flowColumns, "Price Weighted Volume (for sorting)");
-push(@flowColumns, "Price Weighted Volume (for reading)");
-push(@flowColumns, "Total Premium (((ExtrinsicValue - IntrinsicValue) * 100) * volume)(for sorting)");
-push(@flowColumns, "Total Premium (for reading)");
+push(@flowColumns, "Last * Volume");
+push(@flowColumns, "Last * Volume");
+push(@flowColumns, "Total Premium");
+push(@flowColumns, "Total Premium");
 
 my @netFlowColumns;
-push(@netFlowColumns, "Net Flow(Calls minus Puts) (for sorting)");
-push(@netFlowColumns, "Net Flow(Calls minus Puts) (for reading)");
-push(@netFlowColumns, "Total Premium (((ExtrinsicValue - IntrinsicValue) * 100) * volume)(for sorting)");
-push(@netFlowColumns, "Total Premium (for reading)");
+push(@netFlowColumns, "Net Flow(Calls minus Puts)");
+push(@netFlowColumns, "Net Flow(Calls minus Puts)");
+push(@netFlowColumns, "Total Premium");
+push(@netFlowColumns, "Total Premium");
 
 #print "reading @ARGV[0]\n";
 my $filename = @ARGV[0];
@@ -230,17 +230,18 @@ for(sort keys %flowHash){
 }
 
 my $ticker;
-printTableHeader("Price weighted volume(Price * Volume) * all trades Call Option Scan(live data) trimmed to > \$$commaSizeLimit", @flowColumns);
+printTableHeader("Price * Volume Calls > \$$commaSizeLimit", @flowColumns);
 for(sort keys %flowHash){
 	if($_ =~ /calls/){
 		$size = $flowHash{$_};
 		$oldSize = $deltaHash{$_};
 		$deltaSize = int($size - $oldSize);
+		$deltaSize = commillify($deltaSize);
 		if($size > $sizeLimitLow || $oldSize > $sizeLimitLow){
 			$printHelp = commillify($flowHash{$_});
 			$printer = $_;
 			$printer =~ s/calls//g;
-			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
+			#$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
 			$premiumPrinter = commillify($premiumHash{$_});
 			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumHash{$_}|$premiumPrinter\n");
 		}
@@ -250,17 +251,18 @@ for(sort keys %flowHash){
 	}
 }
 
-printTableHeader("Price weighted volume(Price * Volume) * all trades Put Option Scan(live data) trimmed to > \$$commaSizeLimit", @flowColumns);
+printTableHeader("Price * Volume Puts > \$$commaSizeLimit", @flowColumns);
 for(sort keys %flowHash){
 	if($_ =~ /puts/){
 		$size = $flowHash{$_};
 		$oldSize = $deltaHash{$_};
 		$deltaSize = int($size - $oldSize);
+		$deltaSize = commillify($deltaSize);
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
 			$printHelp = commillify($flowHash{$_});
 			$printer = $_;
 			$printer =~ s/puts//g;
-			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
+			#$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
 			$premiumPrinter = commillify($premiumHash{$_});
 			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumHash{$_}|$premiumPrinter|\n");
 		}
@@ -269,7 +271,7 @@ for(sort keys %flowHash){
 		#
 	}
 }
-printTableHeader("Net Price weighted volume(Price * Volume) * all trades Calls minus Put Option Scan(live data) trimmed to > \$$commaSizeLimit", @netFlowColumns);
+printTableHeader("Net Price * Volume Calls minus Puts > \$$commaSizeLimit", @netFlowColumns);
 for(sort keys %flowHash){
 	if($_ =~ /calls/){
 		$ticker = $_;
@@ -297,6 +299,7 @@ for(sort keys %flowHash){
 			}
 		}
 		$deltaSize = int($size - $deltaSize);
+		$deltaSize = commillify($deltaSize);
 		chomp($deltaSize);
 		
 		if($premiumHash{$_} > 0 ){
@@ -310,7 +313,7 @@ for(sort keys %flowHash){
 		
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
 			$printHelp = commillify($size);
-			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
+			#$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
 			$premiumPrinter = commillify($premiumSize);
 			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumSize|$premiumPrinter|\n");
 		}
@@ -323,13 +326,14 @@ for(sort keys %flowHash){
 		$size = -1 * $size;
 		$deltaSize = int($size + $deltaHash{$_});
 		$premiumSize = $premiumHash{$_};
+		$deltaSize = commillify($deltaSize);
 		chomp($deltaSize);
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
 			#we haven't already done these calls then
 			$printer = $_;
 			$printer =~ s/puts//g;
 			$printHelp = commillify($size);
-			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
+			#$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
 			$premiumPrinter = commillify($premiumSize);
 			print("$printer|$size|$printHelp($deltaSymbol$deltaSize)|$premiumSize|$premiumPrinter|\n");
 		}
@@ -362,10 +366,10 @@ my $timeDelta = $timeDelta / 60.0; #seconds to minutes
 my $contractsperminute = 0;
 $contractsperminute = $callSizeFromFileNumber / ($timeDelta *1.0);
 commify($contractsperminute);
-print "\nUntrimmed Total Calls: \$$callSizePrint ($deltaSymbol$callSizeFromFile) volume: $callVolumePrintOrig ($deltaSymbol$callVolumePrint -> $contractsperminute per minute)\n";
+print "\Calls: \$$callSizePrint ($deltaSymbol$callSizeFromFile) volume: $callVolumePrintOrig ($deltaSymbol$callVolumePrint -> $contractsperminute per minute)\n";
 $contractsperminute = $putSizeFromFileNumber / ($timeDelta *1.0);
 commify($contractsperminute);
-print "\nUntrimmed Total Puts: \$$putSizePrint ($deltaSymbol$putSizeFromFile) volume: $putVolumePrintOrig ($deltaSymbol$putVolumePrint -> $contractsperminute per minute)\n";
+print "\Puts: \$$putSizePrint ($deltaSymbol$putSizeFromFile) volume: $putVolumePrintOrig ($deltaSymbol$putVolumePrint -> $contractsperminute per minute)\n";
 my $absv = 0;
 
 if($putSize > $callSize){
@@ -376,7 +380,7 @@ if($putSize > $callSize){
 	$abs = commify($abs);
 	$contractsperminute = $bothSizeFromFileNumber / ($timeDelta *1.0);
 	commify($contractsperminute);
-	print "\nBearish Flow: \$$abs ($deltaSymbol$totalSizeFromFile in $timeDelta minutes)\n";
+	print "\nBearish \$$abs ($deltaSymbol$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
 }
 else{
 	my $abs = $callSize - $putSize;
@@ -386,7 +390,7 @@ else{
 	$abs = commify($abs);
 	$contractsperminute = $bothSizeFromFileNumber / ($timeDelta *1.0);
 	commify($contractsperminute);
-	print "\nBullish Flow \$$abs ($deltaSymbol$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
+	print "\nBullish \$$abs ($deltaSymbol$totalSizeFromFile in $timeDelta minutes -> \$$contractsperminute per minute)\n";
 }
 $epoc2 = time();
 $epoc2 = $epoc2 + 2 * 60 * 60;    # 2 hours after
@@ -406,7 +410,7 @@ exit;
 #									#
 #####################################
 #
-printTableHeader("Options Scan (live data)", @columns);
+printTableHeader("Options Scan", @columns);
 print "$dataFromFiles\n";
 
 sub commify {
