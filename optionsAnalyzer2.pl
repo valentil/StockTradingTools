@@ -2,25 +2,29 @@ my @columns;
 push(@columns, "Description");
 push(@columns, "Close");
 push(@columns, "Last");
-push(@columns, "52High");
 push(@columns, "%Change");
 push(@columns, "Volume");
+push(@columns, "Open Interest");
 push(@columns, "Bid");
 push(@columns, "Ask");
 push(@columns, "High");
 push(@columns, "Low");
 push(@columns, "Delta");
 push(@columns, "Theta");
-push(@columns, "Vega");
+push(@columns, "Intrinsic Value");
 push(@columns, "Price * Volume");
 
 my @flowColumns;
 push(@flowColumns, "Flow in Dollars (for sorting)");
 push(@flowColumns, "Flow in Dollars (for reading)");
+push(@flowColumns, "Total Premium in Dollars ((ExtrinsicValue * 100) * volume)(for sorting)");
+push(@flowColumns, "Total Premium in Dollars (for reading)");
 
 my @netFlowColumns;
 push(@netFlowColumns, "Net Flow(Calls minus Puts) in Dollars (for sorting)");
 push(@netFlowColumns, "Net Flow(Calls minus Puts) in Dollars (for reading)");
+push(@netFlowColumns, "Total Premium in Dollars ((ExtrinsicValue * 100) * volume)(for sorting)");
+push(@netFlowColumns, "Total Premium in Dollars (for reading)");
 
 #print "reading @ARGV[0]\n";
 my $filename = @ARGV[0];
@@ -31,6 +35,11 @@ open(FHDATA, '<', @ARGV[0])  or die $! . @ARGV[0];
 my $dataFromFiles = "";
 
 my %flowHash;
+my %premiumHash;
+my %underlyingHash;
+
+
+
 my $callSize = 0;
 my $putSize = 0;
 
@@ -45,10 +54,16 @@ my $deltaSymbol = "Δ"; #hard to reference otherwise
 while(<FHDATA>){
 	my @data = split("	",$_);
 	my $ticker = @data[1];
+	my $contract = @data[0];
 	my @tickerHelper = split(" ", $ticker);
 	$ticker = @tickerHelper[0];
 	my $lastPrice = @data[3];
-	my $volume = @data[6];
+	my $volume = @data[5];
+	my $OpenInterest = @data[6];
+	my $strike = @data[7];
+	my $IntrinsicValue = @data[14];
+	my $ExtrinsicValue = @data[15];
+	
 	
 	my $timestamper = @data[1];
 	$timestamper =~ s/ (Weeklys)//g;
@@ -68,13 +83,22 @@ while(<FHDATA>){
 	if($daySave =~ /notset/){
 		$daySave = $day;
 	}
+	if(! defined($underlyingHash{$ticker})){
+		$underlyingHash{$ticker} = $strike + $IntrinsicValue;
+	}
+	
 	
 	
 	$volume =~ s/,//g;
+	
+	
 	@data[1] = "[$ticker](https://finance.yahoo.com/quote/$ticker/)";
 	my $volPrice = $lastPrice * $volume * 100;
 	if(@data[0] =~ /[0-9+]C[0-9]+/){
 		my $hashthing = $ticker . "calls";
+		
+		$premiumHash{$hashthing} = $premiumHash{$hashthing} + (($ExtrinsicValue * 100) * $volume);
+		
 		$callSize = $callSize + $volPrice;
 		$callVolume = $callVolume + $volume;
 		if(0+$flowHash{$hashthing} != 0){
@@ -88,8 +112,10 @@ while(<FHDATA>){
 		
 	}
 	else{
-		
 		my $hashthing2 = $ticker . "puts";
+		
+		$premiumHash{$hashthing2} = $premiumHash{$hashthing2} + (($ExtrinsicValue * 100) * $volume);
+		
 		$putSize = $putSize + $volPrice;
 		$putVolume = $putVolume + $volume;
 		if(0+$flowHash{$hashthing2} != 0){
@@ -188,6 +214,8 @@ my $commaSizeLimit = commify($sizeLimitLow);
 
 my $oldSize = 0;
 my $deltaSize = 0;
+my $premiumSize = 0;
+my $premiumPrinter;
 
 
 print(DELTASAVER "$epoc\n");
@@ -201,7 +229,7 @@ for(sort keys %flowHash){
 	print(DELTASAVER "$_,$flowHash{$_}\n");
 }
 
-
+my $ticker;
 printTableHeader("Price weighted volume(Price * Volume) * all trades Call Option Scan(live data) trimmed to > \$$commaSizeLimit", @flowColumns);
 for(sort keys %flowHash){
 	if($_ =~ /calls/){
@@ -213,7 +241,8 @@ for(sort keys %flowHash){
 			$printer = $_;
 			$printer =~ s/calls//g;
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|\n");
+			$premiumPrinter = commify($premiumHash{$_});
+			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumHash{$_}|$premiumPrinter\n");
 		}
 	}
 	else{
@@ -232,23 +261,26 @@ for(sort keys %flowHash){
 			$printer = $_;
 			$printer =~ s/puts//g;
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|\n");
+			$premiumPrinter = commify($premiumHash{$_});
+			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumHash{$_}|$premiumPrinter|\n");
 		}
 	}
 	else{
 		#
 	}
 }
-
 printTableHeader("Net Price weighted volume(Price * Volume) * all trades Calls minus Put Option Scan(live data) trimmed to > \$$commaSizeLimit", @netFlowColumns);
 for(sort keys %flowHash){
 	if($_ =~ /calls/){
+		$ticker = $_;
+		$ticker =~ s/calls//g;
 		$printer = $_;
 		$putter = $_;
 		$printer =~ s/calls//g;
 		$putter =~ s/calls/puts/g;
 		$size = 0;
 		$deltaSize = 0;
+		$premiumSize = 0;
 		if($flowHash{$_} > 0 ){
 			$size = $flowHash{$_};
 			if($flowHash{$putter} > 0){
@@ -266,17 +298,31 @@ for(sort keys %flowHash){
 		}
 		$deltaSize = int($size - $deltaSize);
 		chomp($deltaSize);
+		
+		if($premiumHash{$_} > 0 ){
+			$premiumSize = $premiumHash{$_};
+			if($premiumHash{$putter} > 0){
+				$premiumSize = int($premiumSize - $premiumHash{$putter}); 
+				$premiumHash{$putter} = 0; #zero it out
+			}
+		}
+		
+		
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
 			$printHelp = commify($size);
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|\n");
+			$premiumPrinter = commify($premiumSize);
+			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumSize|$premiumPrinter|\n");
 		}
 		
 	}
 	else{
+		$ticker = $_;
+		$ticker =~ s/puts//g;
 		$size = $flowHash{$_};
 		$size = -1 * $size;
 		$deltaSize = int($size + $deltaHash{$_});
+		$premiumSize = $premiumHash{$_} * -1;
 		chomp($deltaSize);
 		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
 			#we haven't already done these calls then
@@ -284,7 +330,8 @@ for(sort keys %flowHash){
 			$printer =~ s/puts//g;
 			$printHelp = commify($size);
 			$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
-			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|\n");
+			$premiumPrinter = commify($premiumSize);
+			print("$printer|$size($deltaSymbol$deltaSize)|$printHelp|$premiumSize|$premiumPrinter|\n");
 		}
 	}
 }
@@ -352,6 +399,12 @@ print "\nSnapshot @ $datestring\n";
 close(DELTASAVER);
 
 exit;
+
+
+#####################################
+#		Helper Functions			#
+#									#
+#####################################
 #
 printTableHeader("Options Scan (live data)", @columns);
 print "$dataFromFiles\n";
