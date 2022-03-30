@@ -90,6 +90,8 @@ while(<FHDATA>){
 	
 	
 	$volume =~ s/,//g;
+	$OpenInterest =~ s/,//g;
+	$volume = $volume + $OpenInterest;
 	
 	
 	@data[1] = "[$ticker](https://finance.yahoo.com/quote/$ticker/)";
@@ -208,7 +210,7 @@ my $printHelp;
 my $printer;
 my $putter;
 
-my $sizeLimitLow = 5000000;
+my $sizeLimitLow = 75000000;
 my $sizeLimitLowNegative = $sizeLimitLow * -1;
 my $commaSizeLimit = commify($sizeLimitLow);
 
@@ -216,11 +218,12 @@ my $oldSize = 0;
 my $deltaSize = 0;
 my $premiumSize = 0;
 my $premiumPrinter;
-
+my $totalSizeForPrint = $callSize - $putSize;
 
 print(DELTASAVER "$epoc\n");
 print(DELTASAVER "$callSize\n");
 print(DELTASAVER "$putSize\n");
+print(DELTASAVER "$totalSizeForPrint\n");
 print(DELTASAVER "$absv\n");
 print(DELTASAVER "$callVolume\n");
 print(DELTASAVER "$putVolume\n");
@@ -237,7 +240,7 @@ for(sort keys %flowHash){
 		$oldSize = $deltaHash{$_};
 		$deltaSize = int($size - $oldSize);
 		$deltaSize = commillify($deltaSize);
-		if($size > $sizeLimitLow || $oldSize > $sizeLimitLow){
+		if($size > $sizeLimitLow || $oldSize > $sizeLimitLow || $premiumSize > $sizeLimitLow){
 			$printHelp = commillify($flowHash{$_});
 			$printer = $_;
 			$printer =~ s/calls//g;
@@ -258,7 +261,7 @@ for(sort keys %flowHash){
 		$oldSize = $deltaHash{$_};
 		$deltaSize = int($size - $oldSize);
 		$deltaSize = commillify($deltaSize);
-		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
+		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative || $premiumSize > $sizeLimitLow){
 			$printHelp = commillify($flowHash{$_});
 			$printer = $_;
 			$printer =~ s/puts//g;
@@ -311,7 +314,7 @@ for(sort keys %flowHash){
 		}
 		
 		
-		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
+		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative || $premiumSize > $sizeLimitLow){
 			$printHelp = commillify($size);
 			#$printer = "[$printer](https://finance.yahoo.com/quote/$printer/)";
 			$premiumPrinter = commillify($premiumSize);
@@ -328,7 +331,7 @@ for(sort keys %flowHash){
 		$premiumSize = $premiumHash{$_};
 		$deltaSize = commillify($deltaSize);
 		chomp($deltaSize);
-		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative){
+		if($size > $sizeLimitLow || $size < $sizeLimitLowNegative || $premiumSize > $sizeLimitLow){
 			#we haven't already done these calls then
 			$printer = $_;
 			$printer =~ s/puts//g;
@@ -366,10 +369,10 @@ my $timeDelta = $timeDelta / 60.0; #seconds to minutes
 my $contractsperminute = 0;
 $contractsperminute = $callSizeFromFileNumber / ($timeDelta *1.0);
 commify($contractsperminute);
-print "\Calls: \$$callSizePrint ($deltaSymbol$callSizeFromFile) volume: $callVolumePrintOrig ($deltaSymbol$callVolumePrint -> $contractsperminute per minute)\n";
+print "\nCalls: \$$callSizePrint ($deltaSymbol$callSizeFromFile) volume: $callVolumePrintOrig ($deltaSymbol$callVolumePrint -> $contractsperminute per minute)\n";
 $contractsperminute = $putSizeFromFileNumber / ($timeDelta *1.0);
 commify($contractsperminute);
-print "\Puts: \$$putSizePrint ($deltaSymbol$putSizeFromFile) volume: $putVolumePrintOrig ($deltaSymbol$putVolumePrint -> $contractsperminute per minute)\n";
+print "\nPuts: \$$putSizePrint ($deltaSymbol$putSizeFromFile) volume: $putVolumePrintOrig ($deltaSymbol$putVolumePrint -> $contractsperminute per minute)\n\n";
 my $absv = 0;
 
 if($putSize > $callSize){
